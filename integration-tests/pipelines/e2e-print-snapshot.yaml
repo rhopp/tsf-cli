@@ -1,0 +1,28 @@
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: e2e-print-snapshot
+spec:
+  pipelineSpec:
+    params:
+      - name: SNAPSHOT
+        description: "The JSON string representing the snapshot of the application under test."
+        default: '{"components": [{"name":"test-app", "containerImage": "quay.io/example/repo:latest"}]}'
+        type: string
+    tasks:
+      - name: print-snapshot
+        params:
+          - name: SNAPSHOT
+            value: $(params.SNAPSHOT)
+        taskSpec:
+          params:
+            - name: SNAPSHOT
+              type: string
+          steps:
+            - name: print
+              image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+              script: |
+                #!/usr/bin/env bash
+                echo "SNAPSHOT content:"
+                echo '$(params.SNAPSHOT)' | python3 -m json.tool 2>/dev/null || echo '$(params.SNAPSHOT)'
