@@ -1,0 +1,56 @@
+#
+# Tools
+#
+
+FROM registry.redhat.io/openshift4/ose-tools-rhel9:v4.20.0-202602040619.p2.g040daf8.assembly.stream.el9 AS ose-tools
+
+#
+# Build
+#
+
+FROM registry.access.redhat.com/ubi10/go-toolset:1.25.7-1772050924 AS builder
+
+USER root
+WORKDIR /workdir
+
+COPY go.mod go.sum Makefile ./
+RUN go mod download
+
+COPY cmd/ ./cmd/
+COPY tests/ ./tests/
+
+RUN make build
+
+#
+# Run
+#
+
+FROM registry.access.redhat.com/ubi10:10.1-1763341459
+
+LABEL \
+  name="tsf-e2e-tests" \
+  description="End-to-end test binary for TSF (Trusted Software Factory)." \
+  summary="Provides the tsf.test Ginkgo binary and cluster tools."
+
+WORKDIR /tsf-e2e
+
+COPY --from=ose-tools /usr/bin/jq /usr/bin/kubectl /usr/bin/oc /usr/bin/vi /usr/bin/
+# jq libraries
+COPY --from=ose-tools /usr/lib64/libjq.so.1 /usr/lib64/libonig.so.5 /usr/lib64/
+# vi libraries
+COPY --from=ose-tools /usr/libexec/vi /usr/libexec/
+
+COPY --from=builder /workdir/bin/tsf.test /usr/local/bin/tsf.test
+
+RUN echo "# jq" && jq --version && \
+    echo "# kubectl" && kubectl version --client && \
+    echo "# oc" && oc version
+
+RUN useradd -r -d /tsf-e2e -s /sbin/nologin --uid 1001 tsf-e2e && \
+    chown -R tsf-e2e:tsf-e2e .
+
+USER 1001
+
+ENV KUBECONFIG=/tsf-e2e/.kube/config
+
+ENTRYPOINT ["tsf.test"]
