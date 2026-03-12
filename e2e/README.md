@@ -27,3 +27,4 @@ End-to-end test suite for TSF (Trusted Software Factory) instances.
    source my-test.env
    ./bin/tsf.test --ginkgo.v --ginkgo.label-filter="tsf-demo"
    ```
+# test change
