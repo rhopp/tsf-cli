@@ -6,6 +6,8 @@
 # generate an account token. The information is then stored in a kubernetes
 # secret.
 #
+
+# TEMP Comment
 shopt -s inherit_errexit
 set -o errexit
 set -o errtrace

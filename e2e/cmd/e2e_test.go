@@ -31,7 +31,7 @@ func init() {
 }
 
 func TestE2E(t *testing.T) {
-	klog.Info("Starting TSF e2e tests...")
+	klog.Info("TEMP CHANGE Starting TSF e2e tests...")
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "TSF E2E tests")
 }
