@@ -120,6 +120,26 @@ spec:
       params:
         - name: ocp-login-command
           value: "$(tasks.provision-rosa.results.ocp-login-command)"
+    - name: run-tsf-e2e
+      runAfter:
+        - register-sprayproxy
+      timeout: "1h0m"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: $(params.tsf-cli-repo-url)
+          - name: revision
+            value: $(params.tsf-cli-revision)
+          - name: pathInRepo
+            value: integration-tests/tasks/tsf-e2e-run.yaml
+      params:
+        - name: ocp-login-command
+          value: "$(tasks.provision-rosa.results.ocp-login-command)"
+        - name: tsf-cli-repo-url
+          value: "$(params.tsf-cli-repo-url)"
+        - name: tsf-cli-revision
+          value: "$(params.tsf-cli-revision)"
   finally:
     - name: deprovision-rosa
       taskRef:

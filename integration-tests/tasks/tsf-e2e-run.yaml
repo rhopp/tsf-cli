@@ -1,0 +1,67 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tsf-e2e-run
+  annotations:
+    tekton.dev/displayName: "Run TSF E2E Tests"
+    tekton.dev/categories: "Testing"
+    tekton.dev/tags: "e2e,tsf-cli,ginkgo"
+spec:
+  description: >-
+    Clones the tsf-cli repository at the given revision, builds the
+    Ginkgo e2e test binary, and runs it against a cluster.
+  params:
+    - name: ocp-login-command
+      type: string
+      description: "Command to log in to the OpenShift cluster."
+    - name: tsf-cli-repo-url
+      type: string
+      description: "Repository URL to clone the e2e test source from."
+    - name: tsf-cli-revision
+      type: string
+      description: "Git revision (branch, tag, or commit SHA) to check out."
+  volumes:
+    - name: tsf-cli-install
+      secret:
+        secretName: tsf-cli-install
+  steps:
+    - name: run-e2e-tests
+      image: registry.access.redhat.com/ubi10/go-toolset:1.25.7-1772050924
+      env:
+        - name: OCP_LOGIN_COMMAND
+          value: "$(params.ocp-login-command)"
+        - name: TSF_CLI_REPO_URL
+          value: "$(params.tsf-cli-repo-url)"
+        - name: TSF_CLI_REVISION
+          value: "$(params.tsf-cli-revision)"
+        - name: MY_GITHUB_ORG
+          value: "rhopp-rhtap-testing"
+        - name: E2E_APPLICATIONS_NAMESPACE
+          value: "default-tenant"
+      volumeMounts:
+        - name: tsf-cli-install
+          mountPath: /usr/local/tsf-cli-install
+      script: |
+        #!/usr/bin/env bash
+        set -o errexit
+        set -o nounset
+        set -o pipefail
+
+        # Authenticate to the ephemeral cluster
+        eval "${OCP_LOGIN_COMMAND}"
+
+        # Export GitHub token from secret
+        export GITHUB_TOKEN="$(cat /usr/local/tsf-cli-install/github-token)"
+
+        # Clone the repo at the PR revision
+        workdir="$(mktemp -d)"
+        git clone --depth 1 "${TSF_CLI_REPO_URL}" "${workdir}/tsf-cli"
+        cd "${workdir}/tsf-cli"
+        git fetch origin "${TSF_CLI_REVISION}"
+        git checkout FETCH_HEAD
+
+        # Build and run the e2e tests
+        cd e2e
+        make build
+        ./bin/tsf.test --ginkgo.v --ginkgo.label-filter="tsf-demo"
