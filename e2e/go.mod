@@ -59,6 +59,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
+	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v29.0.3+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v28.5.2+incompatible // indirect
@@ -238,7 +239,7 @@ replace github.com/konflux-ci/e2e-tests => github.com/konflux-ci/e2e-tests v0.0.
 replace (
 	github.com/antlr/antlr4 => github.com/antlr/antlr4 v0.0.0-20211106181442-e4c1a74c66bd
 	github.com/apcera/gssapi => github.com/openshift/gssapi v0.0.0-20161010215902-5fb4217df13b
-	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
+	github.com/docker/distribution => github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/distribution/reference => github.com/distribution/reference v0.5.0
 	github.com/docker/docker => github.com/docker/docker v23.0.7+incompatible
 	k8s.io/api => k8s.io/api v0.34.2
