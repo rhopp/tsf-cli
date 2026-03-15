@@ -1,3 +1,46 @@
+## 1.46.0
+
+### 🚀 Features
+
+- Update urls and add missing ([!2785](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2785)) by [Mohamed Mongy](https://gitlab.com/mohamedmongy96)
+
+
+
+# [1.46.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.45.0...v1.46.0) (2026-03-01)
+
+## 1.45.0
+
+### 🚀 Features
+
+- Add LockMembershipsToSAML support to Application Settings ([!2791](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2791)) by [Mohamed Mongy](https://gitlab.com/mohamedmongy96)
+
+### 🔄 Other Changes
+
+- test(integration): Use epic IID instead of ID in `DeleteEpic` cleanup. ([!2794](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2794)) by [Florian Forster](https://gitlab.com/fforster)
+
+
+
+# [1.45.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.44.0...v1.45.0) (2026-02-27)
+
+
+### Bug Fixes
+
+* **test:** Use epic IID instead of ID in `DeleteEpic` cleanup. ([49dea05](https://gitlab.com/gitlab-org/api/client-go/commit/49dea0587894cd75d5962e69080974fccedde406))
+
+## 1.44.0
+
+### 🚀 Features
+
+- Implement runner controller instance-level runner scope support ([!2765](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2765)) by [Timo Furrer](https://gitlab.com/timofurrer)
+
+### 🔄 Other Changes
+
+- chore(deps): update module github.com/graph-gophers/graphql-go to v1.9.0 ([!2789](https://gitlab.com/gitlab-org/api/client-go/-/merge_requests/2789)) by [GitLab Dependency Bot](https://gitlab.com/gitlab-dependency-update-bot)
+
+
+
+# [1.44.0](https://gitlab.com/gitlab-org/api/client-go/compare/v1.43.0...v1.44.0) (2026-02-26)
+
 ## 1.43.0
 
 ### 🚀 Features
