@@ -2,7 +2,10 @@ module github.com/redhat-appstudio/tsf-cli
 
 go 1.25.7
 
-require github.com/redhat-appstudio/helmet v0.0.0-20260225185825-613cab37d63c
+require (
+	github.com/redhat-appstudio/helmet v0.0.0-20260225185825-613cab37d63c
+	golang.org/x/term v0.40.0
+)
 
 require (
 	cel.dev/expr v0.25.1 // indirect
@@ -128,7 +131,6 @@ require (
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260223185530-2f722ef697dc // indirect
@@ -146,7 +148,7 @@ require (
 	k8s.io/cli-runtime v0.35.1 // indirect
 	k8s.io/client-go v0.35.1 // indirect
 	k8s.io/component-base v0.35.1 // indirect
-	k8s.io/klog/v2 v2.130.1 // indirect
+	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260127142750-a19766b6e2d4 // indirect
 	k8s.io/kubectl v0.35.1 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
