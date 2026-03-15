@@ -373,7 +373,7 @@ github.com/pkg/errors
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/common v0.67.5
 ## explicit; go 1.24.0
-# github.com/prometheus/procfs v0.20.0
+# github.com/prometheus/procfs v0.20.1
 ## explicit; go 1.25.0
 # github.com/quay/claircore v1.5.49
 ## explicit; go 1.24.0
