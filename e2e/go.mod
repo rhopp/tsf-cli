@@ -8,7 +8,7 @@ require (
 	github.com/konflux-ci/application-api v0.0.0-20251210122215-555a927cf6d9
 	github.com/konflux-ci/build-service v0.0.0-20240611083846-2dee6cfe6fe4
 	github.com/konflux-ci/e2e-tests v0.0.0-00010101000000-000000000000
-	github.com/konflux-ci/image-controller v0.0.0-20240530145826-3296e4996f6f
+	github.com/konflux-ci/image-controller v0.0.0-20241128141349-9986c9955e05
 	github.com/konflux-ci/integration-service v0.0.0-20260108133201-e2f5559a9544
 	github.com/konflux-ci/release-service v0.0.0-20260113075649-fff62d349fa9
 	github.com/onsi/ginkgo/v2 v2.27.4
@@ -166,7 +166,7 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/prometheus/statsd_exporter v0.28.0 // indirect
-	github.com/redhat-appstudio/jvm-build-service v0.0.0-20240126122210-0e2ee7e2e5b0 // indirect
+	github.com/redhat-appstudio/jvm-build-service v0.0.0-20250301023318-b47170d413c5 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
