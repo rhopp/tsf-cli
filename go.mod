@@ -2,7 +2,10 @@ module github.com/redhat-appstudio/tsf-cli
 
 go 1.25.7
 
-require github.com/redhat-appstudio/helmet v0.0.0-20260225185825-613cab37d63c
+require (
+	github.com/redhat-appstudio/helmet v0.0.0-20260225185825-613cab37d63c
+	golang.org/x/term v0.40.0
+)
 
 require (
 	cel.dev/expr v0.25.1 // indirect
@@ -11,7 +14,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/PuerkitoBio/goquery v1.11.0 // indirect
@@ -128,7 +131,6 @@ require (
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260223185530-2f722ef697dc // indirect
