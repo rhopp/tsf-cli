@@ -1,6 +1,7 @@
 package tsf
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -23,6 +24,7 @@ import (
 	integrationv1beta2 "github.com/konflux-ci/integration-service/api/v1beta2"
 	releaseApi "github.com/konflux-ci/release-service/api/v1alpha1"
 	tektonapi "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -114,7 +116,7 @@ var _ = tsfDemoSuiteDescribe(ginkgo.Label(tsfTestLabel), func() {
 			componentRepositoryName = utils.ExtractGitRepositoryNameFromURL(gitSourceUrl)
 
 			// Get the build pipeline bundle annotation
-			buildPipelineAnnotation = build.GetBuildPipelineBundleAnnotation("docker-build-oci-ta-min")
+			buildPipelineAnnotation = build.GetBuildPipelineBundleAnnotation(constants.DockerBuildOciTAMin)
 		})
 
 		// Remove all resources created by the tests
@@ -279,7 +281,7 @@ var _ = tsfDemoSuiteDescribe(ginkgo.Label(tsfTestLabel), func() {
 			ginkgo.It("should validate Tekton TaskRun test results successfully", func() {
 				pipelineRun, err = fw.AsKubeAdmin.HasController.GetComponentPipelineRun(component.GetName(), applicationName, userNamespace, headSHA)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				gomega.Expect(build.ValidateBuildPipelineTestResults(pipelineRun, fw.AsKubeAdmin.CommonController.KubeRest(), false)).To(gomega.Succeed())
+				gomega.Expect(build.ValidateBuildPipelineTestResults(pipelineRun, fw.AsKubeAdmin.CommonController.KubeRest(), false, true)).To(gomega.Succeed())
 			})
 
 			ginkgo.It("should validate that the build pipelineRun is signed", func() {
@@ -327,7 +329,29 @@ var _ = tsfDemoSuiteDescribe(ginkgo.Label(tsfTestLabel), func() {
 
 		ginkgo.When("Integration Test PipelineRun is created", ginkgo.Label(tsfTestLabel), func() {
 			ginkgo.It("should eventually complete successfully", func() {
-				gomega.Expect(fw.AsKubeAdmin.IntegrationController.WaitForIntegrationPipelineToBeFinished(integrationTestScenario, snapshot, userNamespace)).To(gomega.Succeed(), fmt.Sprintf("Error when waiting for a integration pipeline for snapshot %s/%s to finish", userNamespace, snapshot.GetName()))
+				err := fw.AsKubeAdmin.IntegrationController.WaitForIntegrationPipelineToBeFinished(integrationTestScenario, snapshot, userNamespace)
+				if err != nil {
+					if plr, plrErr := fw.AsKubeAdmin.IntegrationController.GetIntegrationPipelineRun(integrationTestScenario.Name, snapshot.Name, userNamespace); plrErr == nil {
+						for _, chr := range plr.Status.ChildReferences {
+							taskRun := &tektonapi.TaskRun{}
+							if trErr := fw.AsKubeAdmin.CommonController.KubeRest().Get(context.Background(), types.NamespacedName{Namespace: plr.Namespace, Name: chr.Name}, taskRun); trErr != nil {
+								continue
+							}
+							for _, cond := range taskRun.Status.Conditions {
+								if cond.Reason != "Failed" {
+									continue
+								}
+								for _, step := range taskRun.Status.Steps {
+									logs, logErr := utils.GetContainerLogs(fw.AsKubeAdmin.CommonController.KubeInterface(), taskRun.Status.PodName, step.Container, plr.Namespace)
+									if logErr == nil && logs != "" {
+										ginkgo.GinkgoWriter.Printf("\n=== Logs from %s/%s ===\n%s\n", chr.PipelineTaskName, step.Container, logs)
+									}
+								}
+							}
+						}
+					}
+				}
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Error when waiting for a integration pipeline for snapshot %s/%s to finish", userNamespace, snapshot.GetName()))
 			})
 		})
 

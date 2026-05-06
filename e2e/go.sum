@@ -2125,8 +2125,8 @@ github.com/konflux-ci/application-api v0.0.0-20251210122215-555a927cf6d9 h1:b4tC
 github.com/konflux-ci/application-api v0.0.0-20251210122215-555a927cf6d9/go.mod h1:948Z+a1IbfRT0RtoHzWWSN9YEucSbMJTHaMhz7dVICc=
 github.com/konflux-ci/build-service v0.0.0-20240611083846-2dee6cfe6fe4 h1:oZpPHgpAUI9OyvirRJ+0r0QFuiP8Par/CFZIwlr/6Ps=
 github.com/konflux-ci/build-service v0.0.0-20240611083846-2dee6cfe6fe4/go.mod h1:KgSj+voT2lpIu54zzUkHEXCMdnMGmf+Z9cQh+wTQ6ns=
-github.com/konflux-ci/e2e-tests v0.0.0-20260225095508-4cb4f031cf9a h1:Rg5Nqcy9/Q7SpvX8MUo/ddyaL7vOMv3aiImZQkddaoE=
-github.com/konflux-ci/e2e-tests v0.0.0-20260225095508-4cb4f031cf9a/go.mod h1:b/iuObfR1QfCkm8Wjhs77mwlg6zoFxgilbS5A41s4zg=
+github.com/konflux-ci/e2e-tests v0.0.0-20260408132906-0e7ef9a059df h1:zXKhHaOXEGLtnZBl6FPiDs63oSalydXc0Fhrz7YK3cc=
+github.com/konflux-ci/e2e-tests v0.0.0-20260408132906-0e7ef9a059df/go.mod h1:vc203fMcH55U6xqaKP1FVFfBfI9FI4bqel9LRtxUI2Y=
 github.com/konflux-ci/image-controller v0.0.0-20240530145826-3296e4996f6f h1:IKlHR2SjBGx/qVgCpu7+/u5b0vHcRuvq+PiqG774Coo=
 github.com/konflux-ci/image-controller v0.0.0-20240530145826-3296e4996f6f/go.mod h1:sktzzIA3GZy9RUjPZFeDyM0G3OFGZJH8U8Np0NCJNUA=
 github.com/konflux-ci/integration-service v0.0.0-20260108133201-e2f5559a9544 h1:xJKx9GnGmG/LRFx9BmoA5sON9W3mVPK+c9FOJE0sM4Y=

@@ -8,14 +8,11 @@ require (
 	github.com/konflux-ci/application-api v0.0.0-20251210122215-555a927cf6d9
 	github.com/konflux-ci/build-service v0.0.0-20240611083846-2dee6cfe6fe4
 	github.com/konflux-ci/e2e-tests v0.0.0-00010101000000-000000000000
-	github.com/konflux-ci/image-controller v0.0.0-20240530145826-3296e4996f6f
 	github.com/konflux-ci/integration-service v0.0.0-20260108133201-e2f5559a9544
 	github.com/konflux-ci/release-service v0.0.0-20260113075649-fff62d349fa9
 	github.com/onsi/ginkgo/v2 v2.27.4
 	github.com/onsi/gomega v1.39.0
 	github.com/tektoncd/pipeline v1.9.2
-	k8s.io/api v0.35.1
-	k8s.io/apimachinery v0.35.1
 	k8s.io/klog/v2 v2.130.1
 )
 
@@ -127,6 +124,7 @@ require (
 	github.com/kevinburke/ssh_config v1.4.0 // indirect
 	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/konflux-ci/image-controller v0.0.0-20240530145826-3296e4996f6f // indirect
 	github.com/konflux-ci/operator-toolkit v0.0.0-20251118152634-b4f41f073069 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/magefile/mage v1.14.0 // indirect
@@ -208,7 +206,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	k8s.io/api v0.35.1 // indirect
 	k8s.io/apiextensions-apiserver v0.34.3 // indirect
+	k8s.io/apimachinery v0.35.1 // indirect
 	k8s.io/cli-runtime v0.34.2 // indirect
 	k8s.io/client-go v11.0.0+incompatible // indirect
 	k8s.io/component-base v0.34.3 // indirect
@@ -228,7 +228,7 @@ require (
 )
 
 // Local development: point to the local e2e-tests checkout.
-replace github.com/konflux-ci/e2e-tests => github.com/konflux-ci/e2e-tests v0.0.0-20260225095508-4cb4f031cf9a
+replace github.com/konflux-ci/e2e-tests => github.com/konflux-ci/e2e-tests v0.0.0-20260408132906-0e7ef9a059df
 
 // replace github.com/konflux-ci/e2e-tests => /home/rhopp/git/e2e-tests
 
