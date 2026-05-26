@@ -13,7 +13,7 @@ require (
 	github.com/konflux-ci/release-service v0.0.0-20260113075649-fff62d349fa9
 	github.com/onsi/ginkgo/v2 v2.27.4
 	github.com/onsi/gomega v1.39.0
-	github.com/tektoncd/pipeline v1.7.0
+	github.com/tektoncd/pipeline v1.12.0
 	k8s.io/api v0.34.3
 	k8s.io/apimachinery v0.34.3
 	k8s.io/klog/v2 v2.130.1
