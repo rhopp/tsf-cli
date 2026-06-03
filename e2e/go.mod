@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/devfile/library/v2 v2.2.1-0.20230418160146-e75481b7eebd
 	github.com/google/go-github/v44 v44.1.0
-	github.com/konflux-ci/application-api v0.0.0-20251210122215-555a927cf6d9
+	github.com/konflux-ci/application-api v0.0.0-20260603073049-dd8c9b1a64c2
 	github.com/konflux-ci/build-service v0.0.0-20240611083846-2dee6cfe6fe4
 	github.com/konflux-ci/e2e-tests v0.0.0-00010101000000-000000000000
 	github.com/konflux-ci/image-controller v0.0.0-20240530145826-3296e4996f6f
