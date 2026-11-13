@@ -13,7 +13,7 @@ require (
 	github.com/konflux-ci/release-service v0.0.0-20260113075649-fff62d349fa9
 	github.com/onsi/ginkgo/v2 v2.27.4
 	github.com/onsi/gomega v1.39.0
-	github.com/tektoncd/pipeline v1.7.0
+	github.com/tektoncd/pipeline v1.9.3
 	k8s.io/api v0.34.3
 	k8s.io/apimachinery v0.34.3
 	k8s.io/klog/v2 v2.130.1
@@ -102,7 +102,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
-	github.com/google/cel-go v0.26.1 // indirect
+	github.com/google/cel-go v0.27.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.20.7 // indirect
@@ -119,7 +119,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
+	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jmespath/go-jmespath v0.4.1-0.20220621161143-b0104c826a24 // indirect
@@ -175,7 +175,6 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/stoewer/go-strcase v1.3.1 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tektoncd/cli v0.43.0 // indirect
 	github.com/vbatts/tar-split v0.12.2 // indirect
