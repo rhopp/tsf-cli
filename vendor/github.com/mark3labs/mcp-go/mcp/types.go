@@ -17,10 +17,19 @@ type MCPMethod string
 const (
 	// MethodInitialize initiates connection and negotiates protocol capabilities.
 	// https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle/#initialization
+	//
+	// Removed in protocol version 2026-07-28 (SEP-2575), which carries the
+	// protocol version, client identity, and client capabilities in each
+	// request's _meta instead. Servers reject it on requests declaring that
+	// version or later; use [MethodServerDiscover] there.
 	MethodInitialize MCPMethod = "initialize"
 
 	// MethodPing verifies connection liveness between client and server.
 	// https://modelcontextprotocol.io/specification/2024-11-05/basic/utilities/ping/
+	//
+	// Removed in protocol version 2026-07-28 (SEP-2575), where liveness is a
+	// transport concern. Servers reject it on requests declaring that version
+	// or later.
 	MethodPing MCPMethod = "ping"
 
 	// MethodResourcesList lists all available server resources.
@@ -34,6 +43,21 @@ const (
 	// MethodResourcesRead retrieves content of a specific resource by URI.
 	// https://modelcontextprotocol.io/specification/2024-11-05/server/resources/
 	MethodResourcesRead MCPMethod = "resources/read"
+
+	// MethodResourcesSubscribe subscribes the client to updates for a resource.
+	// https://modelcontextprotocol.io/specification/2025-11-25/server/resources
+	//
+	// Removed in protocol version 2026-07-28 (SEP-2575). Use the
+	// ResourceSubscriptions field of a [MethodSubscriptionsListen] request
+	// there.
+	MethodResourcesSubscribe MCPMethod = "resources/subscribe"
+
+	// MethodResourcesUnsubscribe cancels a previous resources/subscribe request.
+	// https://modelcontextprotocol.io/specification/2025-11-25/server/resources
+	//
+	// Removed in protocol version 2026-07-28 (SEP-2575). Close the
+	// [MethodSubscriptionsListen] stream instead.
+	MethodResourcesUnsubscribe MCPMethod = "resources/unsubscribe"
 
 	// MethodPromptsList lists all available prompt templates.
 	// https://modelcontextprotocol.io/specification/2024-11-05/server/prompts/
@@ -53,6 +77,9 @@ const (
 
 	// MethodSetLogLevel configures the minimum log level for client
 	// https://modelcontextprotocol.io/specification/2025-03-26/server/utilities/logging
+	//
+	// Removed in protocol version 2026-07-28 (SEP-2575). Set [MetaKeyLogLevel]
+	// in each request's _meta instead.
 	MethodSetLogLevel MCPMethod = "logging/setLevel"
 
 	// MethodElicitationCreate requests additional information from the user during interactions.
@@ -82,6 +109,22 @@ const (
 	// https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/tasks
 	MethodTasksCancel MCPMethod = "tasks/cancel"
 
+	// MethodNotificationInitialized indicates that the client completed initialization.
+	// https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle/#initialization
+	MethodNotificationInitialized MCPMethod = "notifications/initialized"
+
+	// MethodNotificationCancelled cancels an in-flight request.
+	// https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/cancellation
+	MethodNotificationCancelled MCPMethod = "notifications/cancelled"
+
+	// MethodNotificationProgress reports progress for a long-running request.
+	// https://modelcontextprotocol.io/specification/2025-11-25/basic/utilities/progress
+	MethodNotificationProgress MCPMethod = "notifications/progress"
+
+	// MethodNotificationMessage is a server-pushed log message.
+	// https://modelcontextprotocol.io/specification/2025-11-25/server/utilities/logging
+	MethodNotificationMessage MCPMethod = "notifications/message"
+
 	// MethodNotificationResourcesListChanged notifies when the list of available resources changes.
 	// https://modelcontextprotocol.io/specification/2025-03-26/server/resources#list-changed-notification
 	MethodNotificationResourcesListChanged = "notifications/resources/list_changed"
@@ -107,6 +150,22 @@ const (
 	// MethodCompletionComplete returns completion suggestions for a given argument
 	// https://modelcontextprotocol.io/specification/2025-11-25/server/utilities/completion
 	MethodCompletionComplete MCPMethod = "completion/complete"
+
+	// MethodServerDiscover advertises the server's supported protocol versions,
+	// capabilities, and identity. Servers implementing protocol version
+	// 2026-07-28 or later MUST support it; it replaces the initialize handshake.
+	// https://modelcontextprotocol.io/specification/2026-07-28/server/discover
+	MethodServerDiscover MCPMethod = "server/discover"
+
+	// MethodSubscriptionsListen opens a long-lived stream for server-to-client
+	// notifications. It replaces the HTTP GET endpoint and the
+	// resources/subscribe and resources/unsubscribe RPCs.
+	// https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http
+	MethodSubscriptionsListen MCPMethod = "subscriptions/listen"
+
+	// MethodNotificationSubscriptionsAcknowledged reports which subscriptions a
+	// server established in response to a subscriptions/listen request.
+	MethodNotificationSubscriptionsAcknowledged = "notifications/subscriptions/acknowledged"
 )
 
 type URITemplate struct {
@@ -135,19 +194,8 @@ func (t *URITemplate) UnmarshalJSON(data []byte) error {
 // JSONRPCMessage represents either a JSONRPCRequest, JSONRPCNotification, JSONRPCResponse, or JSONRPCError
 type JSONRPCMessage any
 
-// LATEST_PROTOCOL_VERSION is the most recent version of the MCP protocol.
-const LATEST_PROTOCOL_VERSION = "2025-11-25"
-
-// ValidProtocolVersions lists all known valid MCP protocol versions.
-var ValidProtocolVersions = []string{
-	LATEST_PROTOCOL_VERSION,
-	"2025-06-18",
-	"2025-03-26",
-	"2024-11-05",
-}
-
-// JSONRPC_VERSION is the version of JSON-RPC used by MCP.
-const JSONRPC_VERSION = "2.0"
+// Protocol version constants, negotiation helpers, and JSONRPC_VERSION live
+// in version.go.
 
 // ProgressToken is used to associate progress notifications with the original request.
 type ProgressToken any
@@ -192,21 +240,22 @@ func (m *Meta) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// NewMetaFromMap builds metadata without modifying or retaining the caller's map.
+// Nested values are shared; only the top-level map is copied.
 func NewMetaFromMap(m map[string]any) *Meta {
-	progressToken := m["progressToken"]
-	if progressToken != nil {
-		delete(m, "progressToken")
-	}
+	fields := maps.Clone(m)
+	progressToken := fields["progressToken"]
+	delete(fields, "progressToken")
 
 	return &Meta{
 		ProgressToken:    progressToken,
-		AdditionalFields: m,
+		AdditionalFields: fields,
 	}
 }
 
 type Request struct {
 	Method string        `json:"method"`
-	Params RequestParams `json:"params,omitempty"`
+	Params RequestParams `json:"params,omitzero"`
 }
 
 type RequestParams struct {
@@ -217,7 +266,7 @@ type Params map[string]any
 
 type Notification struct {
 	Method string             `json:"method"`
-	Params NotificationParams `json:"params,omitempty"`
+	Params NotificationParams `json:"params,omitzero"`
 }
 
 type NotificationParams struct {
@@ -252,32 +301,45 @@ func (p NotificationParams) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements custom JSON unmarshaling
 func (p *NotificationParams) UnmarshalJSON(data []byte) error {
-	// Create a map to hold all fields
-	var m map[string]any
-	if err := json.Unmarshal(data, &m); err != nil {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
-
-	// Initialize maps if they're nil
-	if p.Meta == nil {
-		p.Meta = make(map[string]any)
-	}
-	if p.AdditionalFields == nil {
-		p.AdditionalFields = make(map[string]any)
-	}
-
-	// Process all fields
-	for k, v := range m {
-		if k == "_meta" {
-			// Handle Meta field
-			if meta, ok := v.(map[string]any); ok {
-				p.Meta = meta
-			}
-		} else {
-			// Handle additional fields
-			p.AdditionalFields[k] = v
+	if fields == nil {
+		if p.Meta == nil {
+			p.Meta = make(map[string]any)
 		}
+		if p.AdditionalFields == nil {
+			p.AdditionalFields = make(map[string]any)
+		}
+		return nil
 	}
+	m := make(map[string]any, len(fields))
+	for name, raw := range fields {
+		if name == "requestId" {
+			var id RequestId
+			if err := json.Unmarshal(raw, &id); err == nil {
+				m[name] = id.Value()
+				if value, ok := m[name].(int64); ok && value >= -9007199254740991 && value <= 9007199254740991 {
+					m[name] = float64(value)
+				}
+				continue
+			}
+		}
+		var value any
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return err
+		}
+		m[name] = value
+	}
+
+	meta := make(map[string]any)
+	if v, ok := m["_meta"].(map[string]any); ok {
+		meta = v
+	}
+	delete(m, "_meta")
+	p.Meta = meta
+	p.AdditionalFields = m
 
 	return nil
 }
@@ -286,6 +348,14 @@ type Result struct {
 	// This result property is reserved by the protocol to allow clients and
 	// servers to attach additional metadata to their responses.
 	Meta *Meta `json:"_meta,omitempty"`
+
+	// ResultType indicates how the client should interpret this result.
+	//
+	// Servers implementing protocol version 2026-07-28 or later MUST populate
+	// it. It is omitted when responding to a request that used an earlier
+	// protocol version; clients MUST treat an absent value as
+	// [ResultTypeComplete].
+	ResultType ResultType `json:"resultType,omitempty"`
 }
 
 // RequestId is a uniquely identifying ID for a request in JSON-RPC.
@@ -299,7 +369,9 @@ func NewRequestId(value any) RequestId {
 	return RequestId{value: value}
 }
 
-// Value returns the underlying value of the RequestId
+// Value returns the underlying value of the RequestId.
+// Decoded integers use int64 when representable, otherwise json.Number to
+// preserve the exact value. Strings and fractional numbers retain their types.
 func (r RequestId) Value() any {
 	return r.value
 }
@@ -312,13 +384,24 @@ func (r RequestId) String() string {
 	case int64:
 		return "int64:" + strconv.FormatInt(v, 10)
 	case float64:
-		if v == float64(int64(v)) {
-			return "int64:" + strconv.FormatInt(int64(v), 10)
+		if encoded, err := json.Marshal(v); err == nil {
+			number := json.Number(encoded)
+			if _, integer := integerRequestNumber(number); integer {
+				return requestNumberKey(number)
+			}
 		}
 		return "float64:" + strconv.FormatFloat(v, 'f', -1, 64)
+	case json.Number:
+		return requestNumberKey(v)
 	case nil:
 		return "<nil>"
 	default:
+		if encoded, err := json.Marshal(v); err == nil {
+			var decoded RequestId
+			if err := json.Unmarshal(encoded, &decoded); err == nil {
+				return decoded.String()
+			}
+		}
 		return "unknown:" + fmt.Sprintf("%v", v)
 	}
 }
@@ -343,6 +426,14 @@ func (r *RequestId) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &s); err == nil {
 		r.value = s
 		return nil
+	}
+
+	var number json.Number
+	if err := json.Unmarshal(data, &number); err == nil {
+		if value, integer := integerRequestNumber(number); integer {
+			r.value = value
+			return nil
+		}
 	}
 
 	// JSON numbers are unmarshaled as float64 in Go
@@ -400,6 +491,25 @@ type JSONRPCErrorDetails struct {
 	Data any `json:"data,omitempty"`
 }
 
+// UnmarshalJSON handles both the standard JSON-RPC error object
+// ({"code": -32600, "message": "..."}) and non-compliant servers that
+// return the error as a plain string (e.g. "cursor_invalid").
+func (e *JSONRPCErrorDetails) UnmarshalJSON(data []byte) error {
+	// Try the spec-compliant object shape first.
+	type plain JSONRPCErrorDetails
+	if err := json.Unmarshal(data, (*plain)(e)); err == nil {
+		return nil
+	}
+	// Some servers (e.g. Slack MCP) return a bare string.
+	var msg string
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return fmt.Errorf("error field is neither an object nor a string: %w", err)
+	}
+	e.Code = INTERNAL_ERROR
+	e.Message = msg
+	return nil
+}
+
 // Standard JSON-RPC error codes
 const (
 	// PARSE_ERROR indicates invalid JSON was received by the server.
@@ -422,12 +532,34 @@ const (
 )
 
 // MCP error codes
+//
+// Protocol version 2026-07-28 partitions the JSON-RPC server-error range:
+// -32000 to -32019 remains implementation-defined (existing SDK usage is
+// grandfathered) and -32020 to -32099 is reserved for the MCP specification.
 const (
 	// RESOURCE_NOT_FOUND indicates that the requested resource was not found.
+	//
+	// Protocol version 2026-07-28 aligns this condition with JSON-RPC by using
+	// [INVALID_PARAMS] instead. This code is still emitted to, and accepted
+	// from, peers using an earlier version.
 	RESOURCE_NOT_FOUND = -32002
 
 	// URL_ELICITATION_REQUIRED is the error code for when URL elicitation is required.
 	URL_ELICITATION_REQUIRED = -32042
+
+	// HEADER_MISMATCH indicates that a standard MCP HTTP header is missing,
+	// malformed, or does not match the corresponding value in the request body
+	// (SEP-2243).
+	HEADER_MISMATCH = -32020
+
+	// MISSING_REQUIRED_CLIENT_CAPABILITY indicates the client did not declare a
+	// capability the server requires to serve the request (SEP-2575).
+	MISSING_REQUIRED_CLIENT_CAPABILITY = -32021
+
+	// UNSUPPORTED_PROTOCOL_VERSION indicates the server does not implement the
+	// protocol version the request declared (SEP-2575). The error data carries
+	// an [UnsupportedProtocolVersionData].
+	UNSUPPORTED_PROTOCOL_VERSION = -32022
 )
 
 /* Empty result */
@@ -511,6 +643,8 @@ type InitializedNotification struct {
 // capabilities are defined here, in this schema, but this is not a closed set: any
 // client can define its own, additional capabilities.
 type ClientCapabilities struct {
+	// Optional, present if the client is advertising extension support.
+	Extensions map[string]any `json:"extensions,omitempty"`
 	// Experimental, non-standard capabilities that the client supports.
 	Experimental map[string]any `json:"experimental,omitempty"`
 	// Present if the client supports listing roots.
@@ -519,7 +653,7 @@ type ClientCapabilities struct {
 		ListChanged bool `json:"listChanged,omitempty"`
 	} `json:"roots,omitempty"`
 	// Present if the client supports sampling from an LLM.
-	Sampling *struct{} `json:"sampling,omitempty"`
+	Sampling *SamplingCapability `json:"sampling,omitempty"`
 	// Present if the client supports elicitation requests from the server.
 	Elicitation *ElicitationCapability `json:"elicitation,omitempty"`
 	// Present if the client supports task-based execution.
@@ -530,6 +664,8 @@ type ClientCapabilities struct {
 // capabilities are defined here, in this schema, but this is not a closed set: any
 // server can define its own, additional capabilities.
 type ServerCapabilities struct {
+	// Optional, present if the server is advertising extension support.
+	Extensions map[string]any `json:"extensions,omitempty"`
 	// Experimental, non-standard capabilities that the server supports.
 	Experimental map[string]any `json:"experimental,omitempty"`
 	// Present if the server supports sending log messages to the client.
@@ -548,7 +684,7 @@ type ServerCapabilities struct {
 		ListChanged bool `json:"listChanged,omitempty"`
 	} `json:"resources,omitempty"`
 	// Present if the server supports sending sampling requests to clients.
-	Sampling *struct{} `json:"sampling,omitempty"`
+	Sampling *SamplingCapability `json:"sampling,omitempty"`
 	// Present if the server offers any tools to call.
 	Tools *struct {
 		// Whether this server supports notifications for changes to the tool list.
@@ -563,6 +699,16 @@ type ServerCapabilities struct {
 	// Present if the server supports completions requests to the client.
 	Completions *struct{} `json:"completions,omitempty"`
 }
+
+// IconTheme is the background theme an icon is designed to be displayed on.
+type IconTheme string
+
+const (
+	// IconThemeLight indicates the icon is designed for use with a light background.
+	IconThemeLight IconTheme = "light"
+	// IconThemeDark indicates the icon is designed for use with a dark background.
+	IconThemeDark IconTheme = "dark"
+)
 
 // Icon represents a visual identifier for MCP entities.
 //
@@ -581,13 +727,19 @@ type Icon struct {
 
 	// Optional size specifications (e.g., ["48x48"], ["any"] for SVG)
 	Sizes []string `json:"sizes,omitempty"`
+
+	// Theme is an optional specifier for the background theme this icon is designed for.
+	// Use IconThemeLight for light backgrounds or IconThemeDark for dark backgrounds.
+	Theme IconTheme `json:"theme,omitempty"`
 }
 
 // Implementation describes the name and version of an MCP implementation.
 type Implementation struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Title   string `json:"title,omitempty"`
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+	WebsiteURL  string `json:"websiteUrl,omitempty"`
 	// Icons provides visual identifiers for the implementation
 	Icons []Icon `json:"icons,omitempty"`
 }
@@ -629,17 +781,22 @@ type ProgressNotificationParams struct {
 
 type PaginatedRequest struct {
 	Request
-	Params PaginatedParams `json:"params,omitempty"`
+	Params PaginatedParams `json:"params,omitzero"`
 }
 
 type PaginatedParams struct {
 	// An opaque token representing the current pagination position.
 	// If provided, the server should return results starting after this cursor.
 	Cursor Cursor `json:"cursor,omitempty"`
+	// Meta carries protocol-level metadata. PaginatedRequest embeds Request
+	// and shadows its Params with this type, so Meta must be declared here
+	// to be marshaled on paginated requests (tools/list, resources/list,
+	// resources/templates/list, prompts/list, tasks/list).
+	Meta *Meta `json:"_meta,omitempty"`
 }
 
 type PaginatedResult struct {
-	Result
+	CacheableResult
 	// An opaque token representing the pagination position after the last
 	// returned result.
 	// If present, there may be more results available.
@@ -690,12 +847,16 @@ type ReadResourceParams struct {
 	URI string `json:"uri"`
 	// Arguments to pass to the resource handler
 	Arguments map[string]any `json:"arguments,omitempty"`
+	// Meta carries protocol-level metadata (e.g. W3C traceparent, progressToken).
+	Meta *Meta `json:"_meta,omitempty"`
+	MultiRoundTripParams
 }
 
 // ReadResourceResult is the server's response to a resources/read request
 // from the client.
 type ReadResourceResult struct {
-	Result
+	CacheableResult
+	MultiRoundTripResult
 	Contents []ResourceContents `json:"contents"` // Can be TextResourceContents or BlobResourceContents
 }
 
@@ -759,6 +920,9 @@ type Resource struct {
 	//
 	// This can be used by clients to populate UI elements.
 	Name string `json:"name"`
+	// Title is an optional human-readable, UI-friendly display name for this resource.
+	// If not provided, clients should fall back to Name.
+	Title string `json:"title,omitempty"`
 	// A description of what this resource represents.
 	//
 	// This can be used by clients to improve the LLM's understanding of
@@ -768,6 +932,13 @@ type Resource struct {
 	MIMEType string `json:"mimeType,omitempty"`
 	// Icons provides visual identifiers for the resource
 	Icons []Icon `json:"icons,omitempty"`
+	// Size is the size of the raw resource content, in bytes (i.e., before base64
+	// encoding or any tokenization), if known. This can be used by hosts to
+	// display file sizes and estimate context window usage.
+	//
+	// A pointer is used so that an explicit zero size remains distinguishable
+	// from an unset value.
+	Size *int64 `json:"size,omitempty"`
 }
 
 // GetName returns the name of the resource.
@@ -788,6 +959,9 @@ type ResourceTemplate struct {
 	//
 	// This can be used by clients to populate UI elements.
 	Name string `json:"name"`
+	// Title is an optional human-readable, UI-friendly display name for this resource template.
+	// If not provided, clients should fall back to Name.
+	Title string `json:"title,omitempty"`
 	// A description of what this template is for.
 	//
 	// This can be used by clients to improve the LLM's understanding of
@@ -1020,6 +1194,38 @@ type CreateMessageParams struct {
 	MaxTokens        int               `json:"maxTokens"`
 	StopSequences    []string          `json:"stopSequences,omitempty"`
 	Metadata         any               `json:"metadata,omitempty"`
+	// Tools the model may use during generation.
+	//
+	// Per the 2025-11-25 spec, the client MUST return an error if this field
+	// is provided but ClientCapabilities.Sampling.Tools is not declared.
+	Tools []Tool `json:"tools,omitempty"`
+	// ToolChoice controls how the model uses tools during generation.
+	//
+	// Per the 2025-11-25 spec, the client MUST return an error if this field
+	// is provided but ClientCapabilities.Sampling.Tools is not declared.
+	// When omitted the client defaults to {Mode: ToolChoiceModeAuto}.
+	ToolChoice *ToolChoice `json:"toolChoice,omitempty"`
+}
+
+// ToolChoiceMode controls tool selection behaviour during sampling.
+type ToolChoiceMode string
+
+const (
+	// ToolChoiceModeAuto lets the model decide whether to use tools. This is
+	// the default when ToolChoice is omitted.
+	ToolChoiceModeAuto ToolChoiceMode = "auto"
+	// ToolChoiceModeRequired forces the model to call at least one tool.
+	ToolChoiceModeRequired ToolChoiceMode = "required"
+	// ToolChoiceModeNone disables tool use for this sampling request.
+	ToolChoiceModeNone ToolChoiceMode = "none"
+)
+
+// ToolChoice controls tool selection behaviour for a sampling request as
+// defined by the 2025-11-25 protocol revision.
+type ToolChoice struct {
+	// Mode controls tool selection. Empty is treated as ToolChoiceModeAuto by
+	// the client.
+	Mode ToolChoiceMode `json:"mode,omitempty"`
 }
 
 // CreateMessageResult is the client's response to a sampling/create_message
@@ -1038,7 +1244,7 @@ type CreateMessageResult struct {
 // SamplingMessage describes a message issued to or received from an LLM API.
 type SamplingMessage struct {
 	Role    Role `json:"role"`
-	Content any  `json:"content"` // Can be TextContent, ImageContent or AudioContent
+	Content any  `json:"content"` // Can be TextContent, ImageContent, AudioContent, ToolUseContent or ToolResultContent, or a []Content of them
 }
 
 type Annotations struct {
@@ -1116,15 +1322,27 @@ func (AudioContent) isContent() {}
 // ResourceLink represents a link to a resource that the client can access.
 type ResourceLink struct {
 	Annotated
+	// Meta is a metadata object that is reserved by MCP for storing additional information.
+	Meta *Meta  `json:"_meta,omitempty"`
 	Type string `json:"type"` // Must be "resource_link"
 	// The URI of the resource.
 	URI string `json:"uri"`
 	// The name of the resource.
 	Name string `json:"name"`
+	// Title is an optional human-readable, UI-friendly display name for this resource.
+	// If not provided, clients should fall back to Name.
+	Title string `json:"title,omitempty"`
 	// The description of the resource.
 	Description string `json:"description"`
 	// The MIME type of the resource.
 	MIMEType string `json:"mimeType"`
+	// Size is the size of the raw resource content, in bytes (i.e., before base64
+	// encoding or any tokenization), if known. This can be used by hosts to
+	// display file sizes and estimate context window usage.
+	//
+	// A pointer is used so that an explicit zero size remains distinguishable
+	// from an unset value.
+	Size *int64 `json:"size,omitempty"`
 }
 
 func (ResourceLink) isContent() {}
@@ -1142,6 +1360,156 @@ type EmbeddedResource struct {
 }
 
 func (EmbeddedResource) isContent() {}
+
+// UnmarshalJSON implements custom JSON unmarshaling for EmbeddedResource
+// to handle the nested ResourceContents interface.
+func (e *EmbeddedResource) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Annotated
+		Meta     *Meta           `json:"_meta,omitempty"`
+		Type     string          `json:"type"`
+		Resource json.RawMessage `json:"resource"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	var resourceFields map[string]json.RawMessage
+	if err := json.Unmarshal(raw.Resource, &resourceFields); err != nil {
+		return fmt.Errorf("unmarshaling embedded resource: %w", err)
+	}
+
+	var resource ResourceContents
+	if _, ok := resourceFields["text"]; ok {
+		var textResource TextResourceContents
+		if err := json.Unmarshal(raw.Resource, &textResource); err != nil {
+			return fmt.Errorf("unmarshaling embedded text resource: %w", err)
+		}
+		if textResource.URI == "" {
+			return fmt.Errorf("unmarshaling embedded text resource: %w", ErrEmbeddedResourceMissingURI)
+		}
+		resource = textResource
+	} else if _, ok := resourceFields["blob"]; ok {
+		var blobResource BlobResourceContents
+		if err := json.Unmarshal(raw.Resource, &blobResource); err != nil {
+			return fmt.Errorf("unmarshaling embedded blob resource: %w", err)
+		}
+		if blobResource.URI == "" {
+			return fmt.Errorf("unmarshaling embedded blob resource: %w", ErrEmbeddedResourceMissingURI)
+		}
+		resource = blobResource
+	} else {
+		return fmt.Errorf("unmarshaling embedded resource: %w", ErrEmbeddedResourceMissingVariant)
+	}
+
+	e.Annotated = raw.Annotated
+	e.Meta = raw.Meta
+	e.Type = raw.Type
+	e.Resource = resource
+	return nil
+}
+
+// ToolUseContent represents a request from the assistant to call a tool within a sampling message.
+// It must have Type set to "tool_use".
+type ToolUseContent struct {
+	Annotated
+	// Meta is a metadata object that is reserved by MCP for storing additional information.
+	Meta *Meta  `json:"_meta,omitempty"`
+	Type string `json:"type"` // Must be "tool_use"
+	// ID is a unique identifier for this tool use, used to match tool results to their corresponding tool uses.
+	ID string `json:"id"`
+	// Name is the name of the tool to call.
+	Name string `json:"name"`
+	// Input contains the arguments to pass to the tool, conforming to the tool's input schema.
+	Input any `json:"input"`
+}
+
+func (ToolUseContent) isContent() {}
+
+// ToolResultContent represents the result of a tool invocation within a sampling message.
+// It must have Type set to "tool_result".
+type ToolResultContent struct {
+	Annotated
+	// Meta is a metadata object that is reserved by MCP for storing additional information.
+	Meta *Meta  `json:"_meta,omitempty"`
+	Type string `json:"type"` // Must be "tool_result"
+	// ToolUseID is the ID of the tool use this result corresponds to.
+	// This MUST match the ID from a previous ToolUseContent.
+	ToolUseID string `json:"toolUseId"`
+	// Content is the unstructured result content of the tool use.
+	Content []Content `json:"content"`
+	// StructuredContent is an optional structured result of the tool use.
+	// If the tool defined an outputSchema, this SHOULD conform to that schema.
+	StructuredContent any `json:"structuredContent,omitempty"`
+	// RawStructuredContent preserves the original JSON bytes for structuredContent when
+	// unmarshaled from a wire message.
+	RawStructuredContent json.RawMessage `json:"-"`
+	// Whether the tool use resulted in an error.
+	IsError bool `json:"isError,omitempty"`
+}
+
+func (ToolResultContent) isContent() {}
+
+// MarshalJSON implements custom JSON marshaling for ToolResultContent.
+// structuredContent is written from RawStructuredContent when it is set.
+func (t ToolResultContent) MarshalJSON() ([]byte, error) {
+	type alias ToolResultContent
+	out := struct {
+		alias
+		StructuredContent any `json:"structuredContent,omitempty"`
+	}{alias: alias(t), StructuredContent: t.StructuredContent}
+	if len(t.RawStructuredContent) > 0 {
+		out.StructuredContent = t.RawStructuredContent
+	}
+	return json.Marshal(out)
+}
+
+// toolResultContentJSON is a helper type for unmarshaling ToolResultContent.
+type toolResultContentJSON struct {
+	Annotated
+	Meta              *Meta             `json:"_meta,omitempty"`
+	Type              string            `json:"type"`
+	ToolUseID         string            `json:"toolUseId"`
+	Content           []json.RawMessage `json:"content"`
+	StructuredContent json.RawMessage   `json:"structuredContent,omitempty"`
+	IsError           bool              `json:"isError,omitempty"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for ToolResultContent
+// to handle the nested Content interface slice.
+func (t *ToolResultContent) UnmarshalJSON(data []byte) error {
+	var raw toolResultContentJSON
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	t.Annotated = raw.Annotated
+	t.Meta = raw.Meta
+	t.Type = raw.Type
+	t.ToolUseID = raw.ToolUseID
+	t.IsError = raw.IsError
+
+	t.RawStructuredContent = nil
+	t.StructuredContent = nil
+	if len(raw.StructuredContent) > 0 {
+		t.RawStructuredContent = append(json.RawMessage(nil), raw.StructuredContent...)
+		if err := json.Unmarshal(raw.StructuredContent, &t.StructuredContent); err != nil {
+			return fmt.Errorf("unmarshaling tool result structured content: %w", err)
+		}
+	}
+
+	t.Content = nil
+	if raw.Content != nil {
+		t.Content = make([]Content, 0, len(raw.Content))
+		for _, rawContent := range raw.Content {
+			c, err := UnmarshalContent(rawContent)
+			if err != nil {
+				return fmt.Errorf("unmarshaling tool result content: %w", err)
+			}
+			t.Content = append(t.Content, c)
+		}
+	}
+	return nil
+}
 
 // ModelPreferences represents the server's preferences for model selection,
 // requested of the client during sampling.
@@ -1270,7 +1638,7 @@ type CompleteArgument struct {
 
 // CompleteContext is the context about already-resolved arguments
 type CompleteContext struct {
-	Arguments map[string]string `json:"arguments"`
+	Arguments map[string]string `json:"arguments,omitempty"`
 }
 
 // Completion is the server's response to a completion/complete request
@@ -1432,7 +1800,10 @@ type TaskParams struct {
 // It contains task metadata rather than the actual operation result.
 type CreateTaskResult struct {
 	Result
-	Task Task `json:"task"`
+	Task              Task      `json:"task"`
+	Content           []Content `json:"-"`
+	StructuredContent any       `json:"-"`
+	IsError           bool      `json:"-"`
 }
 
 // GetTaskRequest retrieves the current status of a task.
@@ -1480,9 +1851,27 @@ type TaskResultParams struct {
 type TaskResultResult struct {
 	Result
 	// Tool call result fields (for task-augmented tool calls)
-	Content           []Content `json:"content,omitempty"`
+	Content           []Content `json:"content"`
 	StructuredContent any       `json:"structuredContent,omitempty"`
-	IsError           bool      `json:"isError,omitempty"`
+	// RawStructuredContent preserves structured JSON precision when forwarding a parsed result.
+	RawStructuredContent json.RawMessage `json:"-"`
+	IsError              bool            `json:"isError,omitempty"`
+}
+
+// MarshalJSON preserves structured content and emits an array for tool result content.
+func (r TaskResultResult) MarshalJSON() ([]byte, error) {
+	if r.Content == nil {
+		r.Content = []Content{}
+	}
+	type alias TaskResultResult
+	out := struct {
+		alias
+		StructuredContent any `json:"structuredContent,omitempty"`
+	}{alias: alias(r), StructuredContent: r.StructuredContent}
+	if len(r.RawStructuredContent) > 0 {
+		out.StructuredContent = r.RawStructuredContent
+	}
+	return json.Marshal(out)
 }
 
 // CancelTaskRequest cancels an in-progress task.
@@ -1534,19 +1923,21 @@ type Named interface {
 	GetName() string
 }
 
-// MarshalJSON implements custom JSON marshaling for Content interface
+// MarshalContent marshals MCP content as JSON.
 func MarshalContent(content Content) ([]byte, error) {
 	return json.Marshal(content)
 }
 
 // UnmarshalContent implements custom JSON unmarshaling for Content interface
 func UnmarshalContent(data []byte) (Content, error) {
-	var raw map[string]any
+	var raw struct {
+		Type any `json:"type"`
+	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, err
 	}
 
-	contentType, ok := raw["type"].(string)
+	contentType, ok := raw.Type.(string)
 	if !ok {
 		return nil, fmt.Errorf("missing or invalid type field")
 	}
@@ -1572,6 +1963,14 @@ func UnmarshalContent(data []byte) (Content, error) {
 		var content EmbeddedResource
 		err := json.Unmarshal(data, &content)
 		return content, err
+	case ContentTypeToolUse:
+		var content ToolUseContent
+		err := json.Unmarshal(data, &content)
+		return content, err
+	case ContentTypeToolResult:
+		var content ToolResultContent
+		err := json.Unmarshal(data, &content)
+		return content, err
 	default:
 		return nil, fmt.Errorf("unknown content type: %s", contentType)
 	}
@@ -1581,6 +1980,24 @@ func UnmarshalContent(data []byte) (Content, error) {
 type ElicitationCapability struct {
 	Form *struct{} `json:"form,omitempty"` // Supports form mode
 	URL  *struct{} `json:"url,omitempty"`  // Supports URL mode
+}
+
+// SamplingCapability represents the sampling capabilities of a client or server
+// as defined by the 2025-11-25 protocol revision.
+//
+// A nil pointer means the peer does not support sampling at all. A non-nil but
+// empty value (the zero value) advertises baseline sampling support without the
+// optional context-inclusion or tool-use extensions.
+type SamplingCapability struct {
+	// Context, if non-nil, advertises that the client honours the
+	// CreateMessageParams.IncludeContext field. If a peer does not declare this
+	// sub-capability, servers SHOULD only use IncludeContext "none" or omit it.
+	Context *struct{} `json:"context,omitempty"`
+	// Tools, if non-nil, advertises that the client honours the
+	// CreateMessageParams.Tools and CreateMessageParams.ToolChoice fields
+	// (sampling with tools). Servers MUST NOT send those fields unless this
+	// sub-capability is declared.
+	Tools *struct{} `json:"tools,omitempty"`
 }
 
 // NewElicitationCompleteNotification creates a new elicitation complete notification.
